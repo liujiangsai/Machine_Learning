@@ -154,17 +154,90 @@ leafNode = dict(boxstyle="round4", fc="0.8")
 arrow_args = dict(arrowstyle="<-")
 
 def plotNode(nodeTxt, centerPt, parentPt, nodeType):
+	if parentPt == None:
+		parentPt = centerPt
 	createPlot.ax1.annotate(nodeTxt, xy=parentPt, xycoords='axes fraction', xytext=centerPt, textcoords='axes fraction',
 		va="center", ha="center", bbox=nodeType, arrowprops=arrow_args)
 
-def createPlot():
+"""
+"""
+def plotMyTree(myTree, parentPt):
+	textStr = next(iter(myTree))
+	numLeafs = getNumLeafs(myTree)
+	centerPt = (plotMyTree.xOffset + ((float(numLeafs)+1)*1/plotMyTree.totalW)/2,plotMyTree.yOffset)
+	plotNode(textStr, centerPt, parentPt, decisionNode)
+	subDict = myTree[textStr]
+	plotMyTree.yOffset = plotMyTree.yOffset - 1.0/plotMyTree.totalD	
+	for key in subDict.keys():
+			if type(subDict[key]).__name__ == 'dict':
+				plotMyTree(subDict[key], centerPt)
+			else:
+				plotMyTree.xOffset = plotMyTree.xOffset + 1.0/plotMyTree.totalW
+				plotNode(subDict[key], (plotMyTree.xOffset, plotMyTree.yOffset), centerPt, leafNode)
+	plotMyTree.yOffset = plotMyTree.yOffset + 1.0/plotMyTree.totalD
+
+def createPlot(myTree):
 	fig = plt.figure(1, facecolor='white')
 	fig.clf()
 	createPlot.ax1 = plt.subplot(111, frameon=False)
-	plotNode('a decision node', (0.5,0.1), (0.1, 0.5), decisionNode)
-	plotNode('a leaf node', (0.8,0.1), (0.3, 0.8), leafNode)
+
+	plotMyTree.totalW = getNumLeafs(myTree)
+	plotMyTree.totalD = getDepth(myTree)
+	plotMyTree.xOffset = -0.5/float(plotMyTree.totalW)
+	plotMyTree.yOffset = 1.0
+	print plotMyTree.xOffset, plotMyTree.yOffset
+	plotMyTree(myTree, None)
+
+	# plotNode('a decision node', (0.5,0.1), (0.1, 0.5), decisionNode)
+	# plotNode('a leaf node', (0.8,0.1), (0.3, 0.8), leafNode)
 	plt.show()
+
+def getTree():
+	return {'house': {0: {'job': {0: 'no', 1: 'yes'}}, 1: {'credit': {0: 'yes', 1: 'no'}}}}
+
+
+"""
+Description: Get number of leaf node, to decide the length of X axis
+
+Parameters:
+	myTree - Decision Tree
+
+Returns:
+	numLeafs - number of leaf node
+"""
+
+def getNumLeafs(myTree):
+	numLeafs = 0
+	firstDict = myTree[myTree.keys()[0]]
+	for key in firstDict.keys():
+		if type(firstDict[key]).__name__ == 'dict':
+			numLeafs += getNumLeafs(firstDict[key])
+		else:
+			numLeafs += 1
+	return numLeafs
+
+"""
+Description: Get depth of the decision tree, to decide the height of Y axis
+
+Parameters:
+	myTree - Decision Tree
+
+Returns:
+	maxDepth - depth of decision tree
+"""
+def getDepth(myTree):
+	maxDepth = 0
+	firstDict = myTree[myTree.keys()[0]]
+	for key in firstDict.keys():
+		if type(firstDict[key]).__name__ == 'dict':
+			thisDepth = 1 + getDepth(firstDict[key])	#recursive call, each time +1 (itself)
+		else:
+			thisDepth = 1
+		if thisDepth > maxDepth:
+			maxDepth = thisDepth
+	return maxDepth
+
 
 
 if __name__ == '__main__':
-	createPlot()
+	createPlot(getTree())
