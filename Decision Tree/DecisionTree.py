@@ -125,6 +125,13 @@ def majorityCount(classList):
 	return sortedClassCount[0][0]
 
 """
+Description:
+	create decision tree by given dataSet & label
+Parameters:
+	dataSet - a numpy array
+	labelsx - list of label
+Returns:
+	myTree - decision tree
 """
 
 def createTree(dataSet, labelsx):
@@ -161,18 +168,21 @@ def plotNode(nodeTxt, centerPt, parentPt, nodeType):
 
 """
 """
-def plotMyTree(myTree, parentPt):
+def plotMyTree(myTree, parentPt, nodeTxt):
 	textStr = next(iter(myTree))
 	numLeafs = getNumLeafs(myTree)
 	centerPt = (plotMyTree.xOffset + ((float(numLeafs)+1)*1/plotMyTree.totalW)/2,plotMyTree.yOffset)
+	if parentPt != None:
+		plotMidText(centerPt, parentPt, nodeTxt)
 	plotNode(textStr, centerPt, parentPt, decisionNode)
 	subDict = myTree[textStr]
 	plotMyTree.yOffset = plotMyTree.yOffset - 1.0/plotMyTree.totalD	
 	for key in subDict.keys():
 			if type(subDict[key]).__name__ == 'dict':
-				plotMyTree(subDict[key], centerPt)
+				plotMyTree(subDict[key], centerPt, key)
 			else:
 				plotMyTree.xOffset = plotMyTree.xOffset + 1.0/plotMyTree.totalW
+				plotMidText((plotMyTree.xOffset, plotMyTree.yOffset), centerPt, key)
 				plotNode(subDict[key], (plotMyTree.xOffset, plotMyTree.yOffset), centerPt, leafNode)
 	plotMyTree.yOffset = plotMyTree.yOffset + 1.0/plotMyTree.totalD
 
@@ -186,11 +196,16 @@ def createPlot(myTree):
 	plotMyTree.xOffset = -0.5/float(plotMyTree.totalW)
 	plotMyTree.yOffset = 1.0
 	print plotMyTree.xOffset, plotMyTree.yOffset
-	plotMyTree(myTree, None)
+	plotMyTree(myTree, None, '')
 
 	# plotNode('a decision node', (0.5,0.1), (0.1, 0.5), decisionNode)
 	# plotNode('a leaf node', (0.8,0.1), (0.3, 0.8), leafNode)
 	plt.show()
+
+def plotMidText(cntrPt, parentPt, txtString):
+	xMid = (parentPt[0]-cntrPt[0])/2.0 + cntrPt[0]											#计算标注位置					
+	yMid = (parentPt[1]-cntrPt[1])/2.0 + cntrPt[1]
+	createPlot.ax1.text(xMid, yMid, txtString, va="center", ha="center", rotation=30)
 
 def getTree():
 	return {'house': {0: {'job': {0: 'no', 1: 'yes'}}, 1: {'credit': {0: 'yes', 1: 'no'}}}}
@@ -237,7 +252,37 @@ def getDepth(myTree):
 			maxDepth = thisDepth
 	return maxDepth
 
+""""""
+def classify(inputTree, featureLabels, testVec):
+	firstStr = next(iter(inputTree))
+	featureIndex = featureLabels.index(firstStr)
+	secondDict = inputTree[firstStr]
+	for key in secondDict.keys():
+		if key == testVec[featureIndex]:
+			if type(secondDict[key]).__name__ == 'dict':
+				classLabel = classify(secondDict[key], featureLabels, testVec)
+			else:
+				classLabel = secondDict[key]
+	return classLabel
 
+def testCase0():
+	dataSet,labels = createDataSet()
+	myTree = createTree(dataSet, labels)
+	testVec = [2, 1, 0, 2]
+	print classify(myTree, labels, testVec)
+	createPlot(myTree)
 
+def createDataSetLenses():
+	dataSet = []
+	f = open('lenses.txt')
+	for line in f.readlines():
+		dataSet.append(line.strip().split('\t'))
+	f.close()
+	labels = ['age', 'prescript', 'astigmatic', 'tearRate']
+	return dataSet,labels
 if __name__ == '__main__':
-	createPlot(getTree())
+	dataSet,labels = createDataSetLenses()
+	myTree = createTree(dataSet, labels)
+	testVec = ['young','hyper','no','reduced']
+	print classify(myTree, labels, testVec)
+	createPlot(myTree)
